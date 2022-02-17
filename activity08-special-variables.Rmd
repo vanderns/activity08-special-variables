@@ -1,6 +1,6 @@
 ---
 title: "Activity 8"
-author: "Name"
+author: "Nathan Vandermeer"
 output: github_document
 ---
 
@@ -11,8 +11,10 @@ Load the entirety of the `{tidyverse}`.
 If you wish to work with dates during this activity, you will need to also load `{lubridate}`.
 Be sure to avoid printing out any unnecessary information and give the code chunk a meaningful name.
 
-
-
+```{r load_libraries, message=FALSE}
+library(tidyverse)
+library(lubridate)
+```
 
 Cheatsheets that you might want to add to your collection:
 
@@ -25,8 +27,10 @@ Notice that this file is a tab-delimited file that is stored as a `.txt` file.
 Therefore, you will need to use either `read_delim` with a `delim = ...` argument or (better) `read_tsv` .
 Assign the file to a meaningful object name, be sure to avoid printing any unnecessary information, and give the code chunk a meaningful name.
 
-
-
+```{r load_data}
+songs <- read_tsv(here::here("data","billboard_songs.txt"))
+songs
+```
 
 These data include information on song popularity.
 In the US, the Billboard Hot 100 is a list that comes out every week, showing the 100 most played songs that week.
@@ -45,7 +49,7 @@ One way to do this is to use a function like `slice_sample(n = ...)` from `{dply
 
 ```
 # Randomly sample 200 rows
-dataset %>% 
+songs %>% 
   slice_sample(n = 200)
 ```
 
@@ -64,13 +68,72 @@ You are encouraged to explore these data as you wish using functions from the pa
 Some ideas that you might be interested in:
 
 - What 10 songs (display title, artist, and week) were on the charts for the longest?
+
+```{r}
+songs %>% 
+  arrange(desc(`weeks on chart`))
+```
+
 - What distinct date did the oldest song(s) leave the charts?
+
+```{r}
+songs %>% 
+  arrange(`chart date`) %>% 
+  mutate(leaving_date=ymd(`chart date`)+weeks(`weeks on chart`))
+```
+
 - What songs could have been played at your 16th birthday party?
 That is, which songs that eventually peaked at #1  **entered** the charts within a couple months (before or after) your 16th birthday?
+
+```{r}
+bday16=ymd(20170410)
+songs %>% 
+  mutate(date_diff=abs(ymd(`chart date`) - bday16)) %>% 
+  filter(`overall peak` == 1, (date_diff) < 800) %>% 
+  arrange(date_diff)
+```
+
 Assuming you were 16 years old by 2015.
 - Which artist has been **featured** on the most Billboard charting songs?
+
+```{r}
+x <- songs$artist %>% 
+  factor()
+
+data.frame(artist=x) %>% 
+  group_by(artist) %>% 
+  mutate(total=n()) %>% 
+  arrange(desc(total)) %>% 
+  distinct(artist,total)
+```
+
 - Which artist has **collaborated** on the most Billboard charting songs?
+
+```{r}
+y <- songs %>% 
+  filter(str_detect(artist,'feat')) %>% 
+  mutate(featured=word(artist,-1))
+y2 <- y$featured %>% 
+  factor()
+y <- data.frame(featured=y2) %>% 
+  group_by(featured) %>% 
+  mutate(total=n()) %>% 
+  arrange(desc(total)) %>% 
+  distinct(featured,total)
+y
+y <- data.frame(featured=y2) %>% 
+  group_by(featured) %>% 
+  mutate(total=n()) %>% 
+  filter(total>15)
+y
+```
+
 - Create some data visualization controlling the order of the character/string variables.
+
+```{r}
+ggplot(data=y) + 
+  geom_bar(mapping=aes(x=featured))
+```
 
 ## Attribution
 
